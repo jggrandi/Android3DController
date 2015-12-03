@@ -25,6 +25,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager mSensorManager;
     private TCPClient tcp;
 
+    private float[] originMatrix = new float[16];
+    private float[] directionMatrix = new float[16];
     private float[] rotationMatrix = new float[16];
     private float[] rotationMatrixPrev = new float[16];
     private float[] rotationMatrixStep = new float[16];
@@ -51,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_UI);
         new connectTask().execute("");
 
+        Matrix.setIdentityM(originMatrix, 0);
+        Matrix.setIdentityM(directionMatrix, 0);
         Matrix.setIdentityM(rotationMatrix, 0);
         Matrix.setIdentityM(rotationMatrixPrev,0);
         Matrix.setIdentityM(rotationMatrixStep,0);
@@ -96,13 +100,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if(rotationActive) {
             Matrix.invertM(rotationMatrixStep, 0, rotationMatrixPrev, 0);
-            Matrix.multiplyMM(rotationMatrixStep, 0, rotationMatrix, 0, rotationMatrixStep, 0);
+            Matrix.multiplyMM(rotationMatrixStep, 0, rotationMatrix, 0, rotationMatrixStep.clone(), 0);
         }else{
             Matrix.setIdentityM(rotationMatrixStep,0);
         }
 
         Matrix.setIdentityM(translationMatrix, 0);
-        translationMatrix[12] = translation[0] * -0.003f;
+        translationMatrix[12] = translation[0] * 0.003f;
         translationMatrix[13] = translation[1] * 0.003f;
         translationMatrix[14] = translation[2] * 0.003f;
         translation[0] = translation[1] = translation[2] = 0;
@@ -116,16 +120,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         text.append(matrix2String(rotationMatrixStep)+"\n");
         text.append(matrix2String(translationMatrix)+"\n");
         text.append(matrix2String(scaleMatrix)+"\n");
+        text.append(matrix2String(rotationMatrix)+"\n");
 
         byte a[] = float2ByteArray(rotationMatrixStep);
         byte b[] = float2ByteArray(translationMatrix);
         byte c[] = float2ByteArray(scaleMatrix);
         byte d[] = float2ByteArray(rotationMatrix);
-        byte[] packet = new byte[a.length + b.length + c.length];
+        byte[] packet = new byte[a.length + b.length + c.length + d.length];
         System.arraycopy(a, 0, packet, 0, a.length);
         System.arraycopy(b, 0, packet, a.length, b.length);
         System.arraycopy(c, 0, packet, a.length + b.length, c.length);
-        //System.arraycopy(c, 0, packet, a.length + b.length + c.length, d.length);
+        System.arraycopy(d, 0, packet, a.length + b.length + c.length, d.length);
 
         try {
             if(asd--<0){
@@ -151,8 +156,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     {
         if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) return;
 
-        SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
-        Matrix.invertM(rotationMatrix, 0, rotationMatrix, 0);
+        SensorManager.getRotationMatrixFromVector(directionMatrix, event.values);
+        Matrix.invertM(directionMatrix, 0, directionMatrix.clone(), 0);
+
+        float [] r = new float[]{
+                -1,0,0,0,
+                0,0,-1,0,
+                0,-1,0,0,
+                0,0,0,1
+        };
+
+        Matrix.multiplyMM(rotationMatrix,0,directionMatrix.clone(),0,r,0);
+
+        Matrix.multiplyMM(rotationMatrix,0,originMatrix,0,directionMatrix,0);
 
         sendData();
     }
@@ -164,7 +180,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         int keyCode = event.getKeyCode();
 
         if(keyCode == KeyEvent.KEYCODE_VOLUME_UP){
-
+            Matrix.invertM(originMatrix, 0, directionMatrix,0);
+            return true;
         }
 
         if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
@@ -204,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     return true;
                 }
                 if(translationActive){
-                    float[] t = new float[]{event.getX()-touchPosition[0],event.getY()-touchPosition[1],0,1};
+                    float[] t = new float[]{-(event.getX()-touchPosition[0]),event.getY()-touchPosition[1],0,1};
                     Matrix.multiplyMV(t,0,rotationMatrix,0,t,0);
                     translation[0] += t[0];
                     translation[1] += t[1];
