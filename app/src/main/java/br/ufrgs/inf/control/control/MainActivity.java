@@ -13,6 +13,8 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float[] scaleMatrix = new float[16];
     private float scale = 1.f;
 
+    boolean cameraRotating;
+
     boolean translationActive;
     boolean rotationActive;
 
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
         text = (TextView)findViewById(R.id.text);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_UI);
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_UI);
         new connectTask().execute("");
 
         Matrix.setIdentityM(originMatrix, 0);
@@ -63,6 +67,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         translation = new float[]{0,0,0,1};
 
         mScaleDetector = new ScaleGestureDetector(this, new ScaleListener());
+
+        final Button button = (Button) findViewById(R.id.calibrateButton);
+        button.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                calibrate();
+                return true;
+            }
+        });
 
     }
 
@@ -126,11 +139,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         byte b[] = float2ByteArray(translationMatrix);
         byte c[] = float2ByteArray(scaleMatrix);
         byte d[] = float2ByteArray(rotationMatrix);
-        byte[] packet = new byte[a.length + b.length + c.length + d.length];
+        byte[] packet = new byte[64*4 + 1];
         System.arraycopy(a, 0, packet, 0, a.length);
-        System.arraycopy(b, 0, packet, a.length, b.length);
-        System.arraycopy(c, 0, packet, a.length + b.length, c.length);
-        System.arraycopy(d, 0, packet, a.length + b.length + c.length, d.length);
+        System.arraycopy(b, 0, packet, 64*1, b.length);
+        System.arraycopy(c, 0, packet, 64*2, c.length);
+        System.arraycopy(d, 0, packet, 64*3, d.length);
+        packet[64*4] = (byte)(cameraRotating?1:0);
 
         try {
             if(asd--<0){
@@ -159,32 +173,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SensorManager.getRotationMatrixFromVector(directionMatrix, event.values);
         Matrix.invertM(directionMatrix, 0, directionMatrix.clone(), 0);
 
-        float [] r = new float[]{
+        /*float [] r = new float[]{
                 -1,0,0,0,
                 0,0,-1,0,
                 0,-1,0,0,
                 0,0,0,1
         };
 
-        Matrix.multiplyMM(rotationMatrix,0,directionMatrix.clone(),0,r,0);
+        Matrix.multiplyMM(rotationMatrix,0,directionMatrix.clone(),0,r,0);*/
 
         Matrix.multiplyMM(rotationMatrix,0,originMatrix,0,directionMatrix,0);
 
         sendData();
     }
 
+    void calibrate(){
+        Matrix.invertM(originMatrix, 0, directionMatrix,0);
+
+        float [] r = new float[]{
+                -1,0,0,0,
+                0,-1,0,0,
+                0,0,1,0,
+                0,0,0,1
+        };
+
+        Matrix.multiplyMM(originMatrix,0,r,0,originMatrix.clone(),0);
+    }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int action = event.getAction();
         int keyCode = event.getKeyCode();
 
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_UP){
-            Matrix.invertM(originMatrix, 0, directionMatrix,0);
-            return true;
-        }
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
 
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            cameraRotating = (keyCode == KeyEvent.KEYCODE_VOLUME_UP && action == KeyEvent.ACTION_DOWN);
+
             switch (action) {
                 case KeyEvent.ACTION_DOWN:
                     rotationMatrixPrev = rotationMatrix.clone();
@@ -243,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         protected TCPClient doInBackground(String... message) {
 
-            //we create a TCPClient object and
+            //we create a TCPClient object and'
             tcp = new TCPClient(new TCPClient.OnMessageReceived() {
                 @Override
                 //here the messageReceived method is implemented
@@ -253,7 +277,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             tcp.run();
-
             return null;
         }
 
