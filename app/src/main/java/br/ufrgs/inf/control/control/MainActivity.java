@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        getSupportActionBar().hide();
+        //getSupportActionBar().hide();
 
         text = (TextView)findViewById(R.id.text);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             r[i*4 + 3] = b;
             b = r[i*4 + 1];
             r[i*4 + 1] = r[i*4 + 2];
-            r[i*4 + 2] = b;
+            r[i*4 + 2] = b; //Iago
         }
         return r;
     }
