@@ -1,5 +1,6 @@
 package br.ufrgs.inf.control.control;
 
+import android.content.SharedPreferences;
 import android.util.Log;
 import java.io.*;
 import java.net.InetAddress;
@@ -8,10 +9,14 @@ import java.net.Socket;
 public class TCPClient {
 
     private String serverMessage;
-    public static final String SERVERIP = "143.54.13.40"; //your computer IP address
-    public static final int SERVERPORT = 8002;
+    //public static final String SERVERIP = "143.54.13.40"; //your computer IP address
+    /*public static String SERVERIP = "192.168.254.126"; //your computer IP address
+    public static int SERVERPORT = 8002;*/
     private OnMessageReceived mMessageListener = null;
     private boolean mRun = false;
+
+
+    public SharedPreferences activityConfig;
 
     BufferedReader in;
 
@@ -55,12 +60,12 @@ public class TCPClient {
 
             try {
                 //here you must put your computer's IP address.
-                InetAddress serverAddr = InetAddress.getByName(SERVERIP);
+                InetAddress serverAddr = InetAddress.getByName(activityConfig.getString("ip",""));
 
                 Log.e("TCP Client", "C: Connecting...");
 
                 //create a socket to make the connection with the server
-                socket = new Socket(serverAddr, SERVERPORT);
+                socket = new Socket(serverAddr, activityConfig.getInt("port", 0));
 
                 try {
 

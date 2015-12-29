@@ -1,17 +1,24 @@
 package br.ufrgs.inf.control.control;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.opengl.Matrix;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -24,7 +31,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
 
     private TextView text;
     private SensorManager mSensorManager;
@@ -49,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     boolean translationActive;
     boolean rotationActive;
 
+    public static SharedPreferences config;
+
     private ScaleGestureDetector mScaleDetector;
 
     @Override
@@ -58,6 +66,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        config = PreferenceManager.getDefaultSharedPreferences(this);
+        if(config.getString("ip", null) == null) config.edit().putString("ip", "143.54.13.40").commit();
+        if(config.getInt("port", 0) == 0) config.edit().putInt("port", 8002).commit();
 
         //getSupportActionBar().hide();
 
@@ -77,8 +89,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mScaleDetector = new ScaleGestureDetector(this, new ScaleListener());
 
-        final Button button = (Button) findViewById(R.id.calibrateButton);
-        button.setOnLongClickListener(new View.OnLongClickListener() {
+        final Button calibrateButton = (Button) findViewById(R.id.calibrateButton);
+        calibrateButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 calibrate();
@@ -86,7 +98,50 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        final Button configButton = (Button) findViewById(R.id.configButton);
+        configButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                ConfigDialog dialog = new ConfigDialog();
+                dialog.show(getSupportFragmentManager(), "config");
+                return true;
+            }
+        });
+
     }
+
+
+    public static class ConfigDialog extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            final View layout = inflater.inflate(R.layout.dialog_config, null);
+
+            ((TextView) layout.findViewById(R.id.ip)).setText(config.getString("ip",""));
+            ((TextView) layout.findViewById(R.id.port)).setText(""+config.getInt("port",0));
+
+            builder.setView(layout)
+                    .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+                            String ip =((TextView) layout.findViewById(R.id.ip)).getText().toString();
+                            int port = Integer.parseInt(((TextView) layout.findViewById(R.id.port)).getText().toString());
+
+                            config.edit().putString("ip", ip).putInt("port", port).commit();
+
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            ConfigDialog.this.getDialog().cancel();
+                        }
+                    });
+            return builder.create();
+        }
+    }
+
 
     @Override
     public void onAccuracyChanged(Sensor arg0, int arg1)
@@ -117,7 +172,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 m[0], m[4], m[8], m[12], m[1], m[5], m[9], m[13], m[2], m[6], m[10], m[14], m[3], m[7], m[11], m[15]);
     }
     int asd = 10;
+    int qwe = 0;
     public void sendData(){
+        if(qwe++ < 100) return;
+        qwe = 0;
+
         text.setText("");
 
         if(rotationActive) {
@@ -285,6 +344,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     publishProgress(message);
                 }
             });
+            tcp.activityConfig = config;
             tcp.run();
             return null;
         }
