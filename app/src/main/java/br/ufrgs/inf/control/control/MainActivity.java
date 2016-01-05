@@ -34,11 +34,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private TextView text;
     private SensorManager mSensorManager;
-    private TCPClient tcp;
 
-    private float[] originMatrix = new float[16];
-    private float[] directionMatrix = new float[16];
-    private float[] rotationMatrix = new float[16];
+    private volatile float[] originMatrix = new float[16];
+    private volatile float[] directionMatrix = new float[16];
+    private volatile float[] rotationMatrix = new float[16];
     private float[] rotationMatrixPrev = new float[16];
     private float[] rotationMatrixStep = new float[16];
 
@@ -59,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private ScaleGestureDetector mScaleDetector;
 
+    public TCPClient tcp = new TCPClient();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
@@ -76,7 +77,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         text = (TextView)findViewById(R.id.text);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_UI);
-        new connectTask().execute("");
+        //new connectTask().execute("");
+
 
         Matrix.setIdentityM(originMatrix, 0);
         Matrix.setIdentityM(directionMatrix, 0);
@@ -86,6 +88,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Matrix.setIdentityM(translationMatrix,0);
         Matrix.setIdentityM(scaleMatrix,0);
         translation = new float[]{0,0,0,1};
+
+        tcp.activity = this;
+        tcp.start();
+
 
         mScaleDetector = new ScaleGestureDetector(this, new ScaleListener());
 
@@ -173,11 +179,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
     int asd = 10;
     int qwe = 0;
-    public void sendData(){
-        if(qwe++ < 100) return;
+    public  byte[] dataToSend(){
+        //if(qwe++ < 3) return;
         qwe = 0;
 
-        text.setText("");
+        //text.setText("");
 
         if(rotationActive) {
             Matrix.invertM(rotationMatrixStep, 0, rotationMatrixPrev, 0);
@@ -198,10 +204,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         scaleMatrix[0] = scaleMatrix[5] = scaleMatrix[10] = scale;
         scale = 1.0f;
 
-        text.append(matrix2String(rotationMatrixStep)+"\n");
+        /*text.append(matrix2String(rotationMatrixStep)+"\n");
         text.append(matrix2String(translationMatrix)+"\n");
         text.append(matrix2String(scaleMatrix)+"\n");
-        text.append(matrix2String(rotationMatrix)+"\n");
+        text.append(matrix2String(rotationMatrix)+"\n");*/
 
         byte a[] = float2ByteArray(rotationMatrixStep);
         byte b[] = float2ByteArray(translationMatrix);
@@ -214,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         System.arraycopy(d, 0, packet, 64*3, d.length);
         packet[64*4] = (byte)(cameraRotating?1:0);
 
-        try {
+        /*try {
             if(asd--<0){
                 tcp.sendBytes(packet);
                 if(tcp.socket == null || !tcp.socket.isConnected()){
@@ -228,8 +234,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }catch (IOException e) {
 
-        }
+        }*/
         rotationMatrixPrev = rotationMatrix.clone();
+
+        return packet;
 
     }
 
@@ -250,9 +258,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Matrix.multiplyMM(rotationMatrix,0,directionMatrix.clone(),0,r,0);*/
 
-        Matrix.multiplyMM(rotationMatrix,0,originMatrix,0,directionMatrix,0);
+        Matrix.multiplyMM(rotationMatrix, 0, originMatrix, 0, directionMatrix, 0);
 
-        sendData();
+        //sendData();
     }
 
     void calibrate(){
@@ -330,7 +338,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public class connectTask extends AsyncTask<String,String,TCPClient> {
+    /*public class connectTask extends AsyncTask<String,String,TCPClient> {
 
         @Override
         protected TCPClient doInBackground(String... message) {
@@ -358,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // notify the adapter that the data set has changed. This means that new message received
             // from server was added to the list
         }
-    }
+    }*/
 
 
 
@@ -379,7 +387,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);
-        tcp.stopClient();
+        //tcp.stopClient();
     }
 
     @Override

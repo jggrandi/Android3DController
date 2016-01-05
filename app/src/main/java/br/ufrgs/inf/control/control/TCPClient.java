@@ -6,121 +6,47 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class TCPClient {
+public class TCPClient extends Thread {
 
-    private String serverMessage;
-    //public static final String SERVERIP = "143.54.13.40"; //your computer IP address
-    /*public static String SERVERIP = "192.168.254.126"; //your computer IP address
-    public static int SERVERPORT = 8002;*/
-    private OnMessageReceived mMessageListener = null;
-    private boolean mRun = false;
-
-
-    public SharedPreferences activityConfig;
-
-    BufferedReader in;
-
-    public OutputStream out;
-    public DataOutputStream dos;
-
-    public TCPClient(OnMessageReceived listener) {
-        mMessageListener = listener;
-    }
-
-   /* public void sendMessage(String message){
-        if (out != null && !out.checkError()) {
-            out.println(message);
-            out.flush();
-        }
-    }
-*/
-    public void sendBytes(byte[] myByteArray) throws IOException {
-        sendBytes(myByteArray, 0, myByteArray.length);
-    }
-
-    public void sendBytes(byte[] myByteArray, int start, int len) throws IOException {
-        if (len < 0)
-            throw new IllegalArgumentException("Negative length not allowed");
-        if (start < 0 || start >= myByteArray.length)
-            throw new IndexOutOfBoundsException("Out of bounds: " + start);
-        if(dos == null || out == null) return;
-        //dos.writeInt(len);
-        if (len > 0) {
-            dos.write(myByteArray, start, len);
-        }
-    }
     public Socket socket;
-    public void stopClient(){
-        mRun = false;
-    }
+    public DataOutputStream out;
+    public BufferedReader in;
+    public MainActivity activity;
 
     public void run() {
-        while(true) {
-            mRun = true;
+        try {
+            Log.d("TCP", "Conectando...");
+            BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in));
+            InetAddress serverAddr = InetAddress.getByName(MainActivity.config.getString("ip", ""));
+            socket = new Socket(serverAddr, MainActivity.config.getInt("port", 0));
+            out = new DataOutputStream(socket.getOutputStream());
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            try {
-                //here you must put your computer's IP address.
-                InetAddress serverAddr = InetAddress.getByName(activityConfig.getString("ip",""));
+            Log.d("TCP", "Conectado");
+            while(true) {
 
-                Log.e("TCP Client", "C: Connecting...");
+                byte b[] = activity.dataToSend();
+                Log.d("tcp", "asd");
+                out.write(b);
 
-                //create a socket to make the connection with the server
-                socket = new Socket(serverAddr, activityConfig.getInt("port", 0));
+                //out.flush();
+                //activity.dataToSend();
+                Log.d("tcp", "1"+socket.isClosed());
+                Log.d("tcp", "2"+socket.isConnected());
+                Log.d("tcp", "3"+socket.isBound());
+                Log.d("tcp", "4"+socket.isOutputShutdown());
+                Log.d("tcp", "5"+socket.isInputShutdown());
 
-                try {
-
-                    //send the message to the server
-                    out = socket.getOutputStream();
-                    dos = new DataOutputStream(out);
-
-                    Log.e("TCP Client", "C: Sent.");
-
-                    Log.e("TCP Client", "C: Done.");
-
-                    //receive the message which the server sends back
-                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-                    //in this while the client listens for the messages sent by the server
-                    while (mRun) {
-                        serverMessage = in.readLine();
-                        if(serverMessage == null) break;
-
-                        if (serverMessage != null && mMessageListener != null) {
-                            //call the method messageReceived from MyActivity class
-                            mMessageListener.messageReceived(serverMessage);
-                        }
-                        serverMessage = null;
-
-                    }
-
-                    Log.e("RESPONSE FROM SERVER", "S: Received Message: '" + serverMessage + "'");
-
-                } catch (Exception e) {
-
-                    //Log.e("TCP", "S: Error", e);
-
-                } finally {
-                    //the socket must be closed. It is not possible to reconnect to this socket
-                    // after it is closed, which means a new socket instance has to be created.
-                    socket.close();
-                }
-
-            } catch (Exception e) {
-
-               // Log.e("TCP", "C: Error", e);
-
+                sleep(5);
             }
-            try {
-                Thread.sleep(100);
-            }catch(InterruptedException e){
+            //modifiedSentence = inFromServer.readLine();
+            //socket.close();
 
-            }
+        } catch (Exception e) {
+
+            // Log.e("TCP", "C: Error", e);
+
         }
     }
 
-    //Declare the interface. The method messageReceived(String message) will must be implemented in the MyActivity
-    //class at on asynckTask doInBackground
-    public interface OnMessageReceived {
-        public void messageReceived(String message);
-    }
 }
