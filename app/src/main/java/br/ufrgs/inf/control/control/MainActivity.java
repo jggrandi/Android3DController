@@ -16,6 +16,7 @@ import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Layout;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -25,6 +26,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -60,6 +62,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public TCPClient tcp = new TCPClient();
 
+    public int color = 0;
+    public int colors[] = {
+            0xFFA30501,
+            0xFFE1D145,
+            0xFF299745,
+            0xFF45BFE1,
+            0xFFCC6900,
+            0xFF657462,
+            0xFF41BAD1,
+            0xFF0096B2
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
@@ -114,8 +127,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        final Button colorButton = (Button) findViewById(R.id.colorButton);
+        colorButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                color = (color+1)%colors.length;
+                setColor();
+                return true;
+            }
+        });
+        setColor();
     }
 
+
+    public void setColor(){
+        RelativeLayout layout = (RelativeLayout) findViewById(R.id.layout);
+
+        if(color != 0) layout.setBackgroundColor(colors[color]);
+        else layout.setBackgroundColor(0xFFf64949);
+    }
 
     public static class ConfigDialog extends DialogFragment {
         @Override
@@ -213,12 +243,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         byte b[] = float2ByteArray(translationMatrix);
         byte c[] = float2ByteArray(scaleMatrix);
         byte d[] = float2ByteArray(rotationMatrix);
-        byte[] packet = new byte[64*4 + 1];
+        byte[] packet = new byte[64*4 + 1 + 4];
         System.arraycopy(a, 0, packet, 0, a.length);
         System.arraycopy(b, 0, packet, 64*1, b.length);
         System.arraycopy(c, 0, packet, 64*2, c.length);
         System.arraycopy(d, 0, packet, 64*3, d.length);
         packet[64*4] = (byte)(cameraRotating?1:0);
+
+        int cc = colors[color];
+        packet[64*4 + 1] = (byte) (cc >> 24);
+        packet[64*4 + 2] = (byte) (cc >> 16);
+        packet[64*4 + 3] = (byte) (cc >> 8);
+        packet[64*4 + 4] = (byte) (cc);
+
 
         /*try {
             if(asd--<0){
