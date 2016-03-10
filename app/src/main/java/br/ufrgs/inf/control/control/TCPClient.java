@@ -18,6 +18,7 @@ public class TCPClient extends Thread {
         public BufferedReader in;
         public void run() {
             try {
+                activity.setConnected(false);
                 Log.d("TCP", "Conectando...");
                 InetAddress serverAddr = InetAddress.getByName(MainActivity.config.getString("ip", ""));
                 socket = new Socket();
@@ -25,9 +26,12 @@ public class TCPClient extends Thread {
                 out = new DataOutputStream(socket.getOutputStream());
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+                activity.setConnected(true);
                 Log.d("TCP", "Conectado");
                 while(true) {
                     out.write(activity.dataToSend());
+                    //Log.d("TCPasd", "recebendo");
+                    //Log.d("TCPasd", in.readLine());
                     count++;
                     //Log.d("TCP", "Enviado");
                     sleep(5);

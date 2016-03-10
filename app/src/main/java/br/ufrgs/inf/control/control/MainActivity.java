@@ -3,36 +3,37 @@ package br.ufrgs.inf.control.control;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.opengl.Matrix;
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.view.MotionEventCompat;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Layout;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
+public class MainActivity extends AppCompatActivity implements SensorEventListener, PopupMenu.OnMenuItemClickListener {
 
     private TextView text;
     private SensorManager mSensorManager;
@@ -58,6 +59,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public static SharedPreferences config;
 
+    static boolean calibrate = true;
+    public void setConnected(boolean f){
+        if (!f) {
+            findViewById(R.id.loadingPanel).setAlpha(1.0f);
+            //findViewById(R.id.progressBar).setVisibility(View.VISIBLE);
+            //findViewById(R.id.loadingPanel).setVisibility(View.VISIBLE);
+        } else {
+            //findViewById(R.id.loadingPanel).setVisibility(View.GONE);
+            //findViewById(R.id.progressBar).setVisibility(View.GONE);
+            findViewById(R.id.loadingPanel).setAlpha(0.0f);
+        }
+
+    }
+
     private ScaleGestureDetector mScaleDetector;
 
     public TCPClient tcp = new TCPClient();
@@ -75,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -108,43 +124,54 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mScaleDetector = new ScaleGestureDetector(this, new ScaleListener());
 
-        final Button calibrateButton = (Button) findViewById(R.id.calibrateButton);
-        calibrateButton.setOnLongClickListener(new View.OnLongClickListener() {
+
+        final ImageButton menuButton = (ImageButton) findViewById(R.id.menu_button);
+        menuButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onLongClick(View v) {
-                calibrate();
-                return true;
+            public void onClick(View view) {
+                PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
+                popupMenu.setOnMenuItemClickListener(MainActivity.this);
+                popupMenu.inflate(R.menu.popup_menu);
+                popupMenu.show();
             }
         });
 
-        final Button configButton = (Button) findViewById(R.id.configButton);
-        configButton.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                ConfigDialog dialog = new ConfigDialog();
-                dialog.show(getSupportFragmentManager(), "config");
-                return true;
-            }
-        });
-
-        final Button colorButton = (Button) findViewById(R.id.colorButton);
-        colorButton.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                color = (color+1)%colors.length;
-                setColor();
-                return true;
-            }
-        });
         setColor();
+
+        startCalibrate();
+
+
     }
 
+
+
+    public void startCalibrate(){
+        Intent iinent= new Intent(MainActivity.this,CameraView.class);
+        startActivity(iinent);
+    }
 
     public void setColor(){
         RelativeLayout layout = (RelativeLayout) findViewById(R.id.layout);
 
         if(color != 0) layout.setBackgroundColor(colors[color]);
         else layout.setBackgroundColor(0xFFf64949);
+    }
+
+    public boolean onMenuItemClick(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.item_server:
+                ConfigDialog dialog = new ConfigDialog();
+                dialog.show(getSupportFragmentManager(), "config");
+                return true;
+            case R.id.item_color:
+                color = (color+1)%colors.length;
+                setColor();
+                return true;
+            case R.id.item_calibrate:
+                startCalibrate();
+                return true;
+        }
+        return false;
     }
 
     public static class ConfigDialog extends DialogFragment {
@@ -214,7 +241,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         qwe = 0;
 
         //text.setText("");
-
         if(rotationActive) {
             Matrix.invertM(rotationMatrixStep, 0, rotationMatrixPrev, 0);
             Matrix.multiplyMM(rotationMatrixStep, 0, rotationMatrix, 0, rotationMatrixStep.clone(), 0);
@@ -429,9 +455,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     protected void onResume() {
+        if(calibrate) calibrate();
         super.onResume();
         mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_UI);
-
+    }
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item
+        android:id="@+id/item_calibrate"
+        android:showAsAction="ifRoom|withText"
+        android:title="Calibrate"
+        android:visible="true"/>
+    <item
+        android:id="@+id/item_color"
+        android:showAsAction="ifRoom|withText"
+        android:title="Change Color"
+        android:visible="true"/>
+    <item
+        android:id="@+id/item_server"
+        android:showAsAction="ifRoom|withText"
+        android:title="Server Address"
+        android:visible="true"/>
+
+</menu>
