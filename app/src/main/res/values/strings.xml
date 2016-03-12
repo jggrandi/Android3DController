@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Control</string>
+    <string name="app_name">3DUI - UFRGS</string>
 
     <string name="title_activity_camera_view">CameraView</string>
     <string name="dummy_button">Dummy Button</string>
