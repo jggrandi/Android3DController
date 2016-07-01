@@ -10,7 +10,7 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/icon"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme" >
@@ -27,6 +27,7 @@
             android:name=".CameraView"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_camera_view"
+            android:screenOrientation="portrait"
             android:theme="@style/FullscreenTheme" >
         </activity>
     </application>

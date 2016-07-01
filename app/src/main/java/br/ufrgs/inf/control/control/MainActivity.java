@@ -32,6 +32,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, PopupMenu.OnMenuItemClickListener {
 
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             0xFF45BFE1,
             0xFFCC6900,
             0xFF657462,
-            0xFF41BAD1,
+          //  0xFF41BAD1,
             0xFF0096B2
     };
     @Override
@@ -98,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         config = PreferenceManager.getDefaultSharedPreferences(this);
-        if(config.getString("ip", null) == null) config.edit().putString("ip", "143.54.13.40").commit();
+        if(config.getString("ip", null) == null) config.edit().putString("ip","192.168.1.2").commit();
         if(config.getInt("port", 0) == 0) config.edit().putInt("port", 8002).commit();
 
         //getSupportActionBar().hide();
@@ -136,6 +137,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        final ImageButton helpButton = (ImageButton) findViewById(R.id.helpButton);
+        helpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                findViewById(R.id.helpLayaut).setVisibility(View.VISIBLE);
+            }
+        });
+
+
+        final ImageButton closeButton = (ImageButton) findViewById(R.id.closeButton);
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                findViewById(R.id.helpLayaut).setVisibility(View.GONE);
+            }
+        });
+
+        Random randomGenerator = new Random();
+        color = randomGenerator.nextInt(colors.length);
         setColor();
 
         startCalibrate();
@@ -449,7 +469,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onPause() {
         super.onPause();
-        mSensorManager.unregisterListener(this);
+        //mSensorManager.unregisterListener(this);
+        //tcp.stopClient();
+    }
+
+    @Override
+    protected void onStop() {
+
+        super.onStop();
+        //finish();
         //tcp.stopClient();
     }
 

@@ -20,9 +20,9 @@ public class TCPClient extends Thread {
             try {
                 activity.setConnected(false);
                 Log.d("TCP", "Conectando...");
-                InetAddress serverAddr = InetAddress.getByName(MainActivity.config.getString("ip", ""));
+                InetAddress serverAddr = InetAddress.getByName(MainActivity.config.getString("ip", "192.168.1.2"));
                 socket = new Socket();
-                socket.connect(new InetSocketAddress(serverAddr, MainActivity.config.getInt("port", 0)), 1000);
+                socket.connect(new InetSocketAddress(serverAddr, MainActivity.config.getInt("port", 8002)), 1000);
                 out = new DataOutputStream(socket.getOutputStream());
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
